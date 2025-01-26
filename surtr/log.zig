@@ -30,12 +30,18 @@ fn log (
     comptime fmt: []const u8,
     args: anytype,
 ) void {
-    _ = level;
-    _ = scope;
+    // _ = level;
+    const level_str = comptime switch (level) {
+        .debug => "[DEBUG]",
+        .info  => "[INFO ]",
+        .warn  => "[WARN ]",
+        .err   => "[ERROR]",
+    };
+    const scope_str = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
 
     std.fmt.format(
         Writer{ .context = {} },
-        fmt ++ "\r\n",
+        level_str ++ scope_str ++ fmt ++ "\r\n",
         args,
     ) catch unreachable;
 }

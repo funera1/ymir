@@ -10,7 +10,7 @@ pub fn main() uefi.Status {
     status = con_out.clearScreen();
 
     // init log
-    const log = std.log;
+    const log = std.log.scoped(.surtr);
     blog.init(con_out);
     log.info("Initialized bootloader log.", .{});
 
