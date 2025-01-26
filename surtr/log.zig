@@ -1,4 +1,6 @@
 const std = @import("std");
+const option = @import("option"); // build.zig で指定したオプション名
+const log_level = option.log_level;
 const uefi = std.os.uefi;
 
 const Writer = std.io.Writer(
@@ -47,5 +49,11 @@ fn log (
 }
 
 pub const default_log_options = std.Options{
+    .log_level = switch (option.log_level) {
+        .debug => .debug,
+        .info => .info,
+        .warn => .warn,
+        .err => .err,
+    },
     .logFn = log,
 };

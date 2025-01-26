@@ -47,4 +47,32 @@ pub fn build(b: *std.Build) void {
 
     const run_qemu_cmd = b.step("run", "Run QEMU");
     run_qemu_cmd.dependOn(&qemu_cmd.step);
+
+    // Options
+    const s_log_level = b.option(
+        []const u8,
+        "log_level",
+        "log_level",
+    ) orelse "info";
+    const log_level: std.log.Level = b: {
+        const eql = std.mem.eql;
+        break :b if (eql(u8, s_log_level, "debug"))
+            .debug
+        else if (eql(u8, s_log_level, "info"))
+            .info
+        else if (eql(u8, s_log_level, "warn"))
+            .warn
+        else if (eql(u8, s_log_level, "error"))
+            .err
+        else
+            @panic("invalid log level");
+    };
+
+    // 新しいオプションの作成
+    const options = b.addOptions();
+    options.addOption(std.log.Level, "log_level", log_level);
+
+    // Surtr にオプションを追加
+    surtr.root_module.addOptions("option", options);
+
 }
