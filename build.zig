@@ -74,4 +74,30 @@ pub fn build(b: *std.Build) void {
 
     const run_qemu_cmd = b.step("run", "Run QEMU");
     run_qemu_cmd.dependOn(&qemu_cmd.step);
+
+    // setting ymir
+    // NOTE: ymirはelfで出力される
+    const ymir_target = b.resolveTargetQuery(.{
+        .cpu_arch = .x86_64,
+        .os_tag = .freestanding,
+        .ofmt = .elf,
+    });
+    const ymir = b.addExecutable(.{
+        .name = "ymir.elf",
+        .root_source_file = b.path("ymir/main.zig"),
+        .target = ymir_target, // Freestanding x64 ELF executable
+        .optimize = optimize, // You can choose the optimization level
+        .linkage = .static,
+        .code_model = .kernel,
+    });
+    ymir.entry = .{ .symbol_name = "kernelEntry" };
+    b.installArtifact(ymir);
+
+    // ymirをEFIファイルシステムに配置する設定
+    const install_ymir = b.addInstallFile(
+        ymir.getEmittedBin(),
+        b.fmt("{s}/{s}", .{ out_dir_name, ymir.name }),
+    );
+    install_ymir.step.dependOn(&ymir.step);
+    b.getInstallStep().dependOn(&install_ymir.step);
 }
