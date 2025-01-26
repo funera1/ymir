@@ -9,9 +9,15 @@ pub fn main() uefi.Status {
     const con_out = uefi.system_table.con_out orelse return .Aborted;
     status = con_out.clearScreen();
 
-    for ("Hello, world!\n") |b| {
-        con_out.outputString(&[_:0]u16{ b }).err() catch unreachable;
-    }
+    // init log
+    const log = std.log;
+    blog.init(con_out);
+    log.info("Initialized bootloader log.", .{});
+
+
+    // for ("Hello, world!\n") |b| {
+    //     con_out.outputString(&[_:0]u16{ b }).err() catch unreachable;
+    // }
 
     while (true)
         asm volatile ("hlt");
