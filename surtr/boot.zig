@@ -1,5 +1,6 @@
 const std = @import("std");
 const blog = @import("log.zig");
+const arch = @import("arch.zig");
 
 pub const std_options = blog.default_log_options;
 const uefi = std.os.uefi;
@@ -109,6 +110,16 @@ pub fn main() uefi.Status {
             elf_header.shnum,
         },
     );
+
+    arch.page.map4kTo(
+        0xFFFF_FFFF_DEAD_0000,
+        0x10_0000,
+        .read_write,
+        boot_service,
+    ) catch |err| {
+        log.err("Failed to map 4KiB page: {?}", .{err});
+        return .Aborted;
+    };
 
     // for ("Hello, world!\n") |b| {
     //     con_out.outputString(&[_:0]u16{ b }).err() catch unreachable;
