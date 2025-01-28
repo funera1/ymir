@@ -194,3 +194,15 @@ pub fn map4kTo(virt: Virt, phys: Phys, attr: PageAttribute, bs: *BootServices) P
     lv1ent.* = new_lv1ent;
     // No need to flush TLB because the page was not present before.
 }
+
+pub fn setLv4Writable(bs: *BootServices) PageError!void {
+    var new_lv4ptr: [*]Lv4Entry = undefined;
+    const status = bs.allocatePages(.AllocateAnyPages, .BootServicesData, 1, @ptrCast(&new_lv4ptr));
+    if (status != .Success) return PageError.NoMemory;
+
+    const new_lv4tbl = new_lv4ptr[0..num_table_entries];
+    const lv4tbl = getLv4Table(am.readCr3());
+    @memcpy(new_lv4tbl, lv4tbl);
+
+    am.loadCr3(@intFromPtr(new_lv4tbl.ptr));
+}

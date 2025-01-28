@@ -111,6 +111,12 @@ pub fn main() uefi.Status {
         },
     );
 
+    arch.page.setLv4Writable(boot_service) catch |err| {
+        log.err("Failed to set page table writable: {?}", .{err});
+        return .LoadError;
+    };
+    log.debug("Set page table writable.", .{});
+
     arch.page.map4kTo(
         0xFFFF_FFFF_DEAD_0000,
         0x10_0000,
