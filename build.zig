@@ -100,4 +100,7 @@ pub fn build(b: *std.Build) void {
     );
     install_ymir.step.dependOn(&ymir.step);
     b.getInstallStep().dependOn(&install_ymir.step);
+
+    // linker
+    ymir.linker_script = b.path("ymir/linker.ld");
 }

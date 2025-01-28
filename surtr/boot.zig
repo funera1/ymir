@@ -7,6 +7,8 @@ const uefi = std.os.uefi;
 const elf = std.elf;
 const log = std.log.scoped(.surtr);
 
+const page_size = arch.page.page_size_4k;
+
 // ファイルのオープン
 inline fn toUcs2(comptime s: [:0]const u8) [s.len * 2:0]u16 {
     var ucs2: [s.len * 2:0]u16 = [_:0]u16{0} ** (s.len * 2);
@@ -51,7 +53,7 @@ pub fn main() uefi.Status {
         return .Aborted;
     };
     log.info("Got boot services.", .{});
-    
+
     // BootServicesからSimple FIle System Protocolを取得
     var fs: *uefi.protocol.SimpleFileSystem = undefined;
     status = boot_service.locateProtocol(&uefi.protocol.SimpleFileSystem.guid, null, @ptrCast(&fs));
@@ -76,7 +78,7 @@ pub fn main() uefi.Status {
 
     // ファイル read
     var header_size: usize = @sizeOf(elf.Elf64_Ehdr);
-    var header_buffer:  [*]align(8) u8 = undefined;
+    var header_buffer: [*]align(8) u8 = undefined;
     status = boot_service.allocatePool(.LoaderData, header_size, &header_buffer); // loerderDataはUEFIアプリのデータ用メモリ
     if (status != .Success) {
         log.err("Failed to allocate memory for kernel ELF header.", .{});
@@ -102,7 +104,7 @@ pub fn main() uefi.Status {
         \\  Is 64-bit            : {d}
         \\  # of Program Headers : {d}
         \\  # of Section Headers : {d}
-,
+    ,
         .{
             elf_header.entry,
             @intFromBool(elf_header.is_64),
@@ -131,8 +133,30 @@ pub fn main() uefi.Status {
     //     con_out.outputString(&[_:0]u16{ b }).err() catch unreachable;
     // }
 
+    // カーネル用のメモリの確保
+    const Addr = elf.Elf64_Addr;
+    var kernel_start_virt: Addr = std.math.maxInt(Addr);
+    var kernel_start_phys: Addr align(page_size) = std.math.maxInt(Addr);
+    var kernel_end_phys: Addr = 0;
+
+    var iter = elf_header.program_header_iterator(kernel);
+    // PT_LOADセグメントの最小・最大アドレスを記録
+    while (true) {
+        const phdr = iter.next() catch |err| {
+            log.err("Failed to get program header: {?}\n", .{err});
+            return .LoadError;
+        } orelse break;
+        if (phdr.p_type != elf.PT_LOAD) continue;
+        if (phdr.p_paddr < kernel_start_phys) kernel_start_phys = phdr.p_paddr;
+        if (phdr.p_vaddr < kernel_start_virt) kernel_start_virt = phdr.p_vaddr;
+        if (phdr.p_paddr + phdr.p_memsz > kernel_end_phys) kernel_end_phys = phdr.p_paddr + phdr.p_memsz;
+    }
+
+    const pages_4kib = (kernel_end_phys - kernel_start_phys + (page_size - 1)) / page_size;
+    log.info("Kernel image: 0x{X:0>16} - 0x{X:0>16} (0x{X} pages)", .{ kernel_start_phys, kernel_end_phys, pages_4kib });
+
     while (true)
         asm volatile ("hlt");
-    
+
     return .success;
 }
