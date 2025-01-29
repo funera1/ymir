@@ -1,6 +1,7 @@
 const std = @import("std");
 const blog = @import("log.zig");
 const arch = @import("arch.zig");
+const defs = @import("defs.zig");
 
 pub const std_options = blog.default_log_options;
 const uefi = std.os.uefi;
@@ -213,27 +214,61 @@ pub fn main() uefi.Status {
         if (zero_count > 0) {
             boot_service.setMem(@ptrFromInt(phdr.p_vaddr + phdr.p_filesz), zero_count, 0);
         }
+    }
 
-        // ELFヘッダパースのために使ったファイルのclose/メモリの開放
-        status = boot_service.freePool(header_buffer);
-        if (status != .Success) {
-            log.err("Failed to free memory for kernel ELF header.", .{});
-            return status;
-        }
-        status = kernel.close();
-        if (status != .Success) {
-            log.err("Failed to close kernel file.", .{});
-            return status;
-        }
-        status = root_dir.close();
-        if (status != .Success) {
-            log.err("Failed to close filesystem volume.", .{});
-            return status;
-        }
+    // ELFヘッダパースのために使ったファイルのclose/メモリの開放
+    status = boot_service.freePool(header_buffer);
+    if (status != .Success) {
+        log.err("Failed to free memory for kernel ELF header.", .{});
+        return status;
+    }
+    status = kernel.close();
+    if (status != .Success) {
+        log.err("Failed to close kernel file.", .{});
+        return status;
+    }
+    status = root_dir.close();
+    if (status != .Success) {
+        log.err("Failed to close filesystem volume.", .{});
+        return status;
+    }
+
+    // メモリマップの取得と表示
+    const map_buffer_size = page_size * 4;
+    var map_buffer: [map_buffer_size]u8 = undefined;
+    var map = defs.MemoryMap{
+        .buffer_size = map_buffer.len,
+        .descriptors = @alignCast(@ptrCast(&map_buffer)),
+        .map_key = 0,
+        .map_size = map_buffer.len,
+        .descriptor_size = 0,
+        .descriptor_version = 0,
+    };
+    status = getMemoryMap(&map, boot_service);
+
+    var map_iter = defs.MemoryDescriptorIterator.new(map);
+    while (true) {
+        if (map_iter.next()) |md| {
+            log.debug(" 0x{X:0>16} - 0x{X:0>16} : {s}", .{
+                md.physical_start,
+                md.physical_start + md.number_of_pages * page_size,
+                @tagName(md.type),
+            });
+        } else break;
     }
 
     while (true)
         asm volatile ("hlt");
 
     return .success;
+}
+
+fn getMemoryMap(map: *defs.MemoryMap, boot_services: *uefi.tables.BootServices) uefi.Status {
+    return boot_services.getMemoryMap(
+        &map.map_size,
+        map.descriptors,
+        &map.map_key,
+        &map.descriptor_size,
+        &map.descriptor_version,
+    );
 }
