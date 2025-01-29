@@ -205,6 +205,14 @@ pub fn main() uefi.Status {
             "   Seg @ 0x{X:0>16} - 0x{X:0>16}",
             .{ phdr.p_vaddr, phdr.p_vaddr + phdr.p_memsz },
         );
+
+        // bssセクションの初期化
+        // .bssセクションは初期化されていないため、ファイルには記録されず、ロード時にゼロクリアされる。
+        // そのため、p_filesz < p_memszになる. つまりzero_count > 0のとき、bssセクションということ
+        const zero_count = phdr.p_memsz - phdr.p_filesz;
+        if (zero_count > 0) {
+            boot_service.setMem(@ptrFromInt(phdr.p_vaddr + phdr.p_filesz), zero_count, 0);
+        }
     }
 
     while (true)
