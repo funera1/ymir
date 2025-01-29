@@ -213,6 +213,23 @@ pub fn main() uefi.Status {
         if (zero_count > 0) {
             boot_service.setMem(@ptrFromInt(phdr.p_vaddr + phdr.p_filesz), zero_count, 0);
         }
+
+        // ELFヘッダパースのために使ったファイルのclose/メモリの開放
+        status = boot_service.freePool(header_buffer);
+        if (status != .Success) {
+            log.err("Failed to free memory for kernel ELF header.", .{});
+            return status;
+        }
+        status = kernel.close();
+        if (status != .Success) {
+            log.err("Failed to close kernel file.", .{});
+            return status;
+        }
+        status = root_dir.close();
+        if (status != .Success) {
+            log.err("Failed to close filesystem volume.", .{});
+            return status;
+        }
     }
 
     while (true)
