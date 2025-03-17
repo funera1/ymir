@@ -257,6 +257,25 @@ pub fn main() uefi.Status {
         } else break;
     }
 
+    // boot_serviceのexit
+    log.info("Exiting boot services.", {});
+    status = boot_service.exitBootServices(uefi.handle, map.map_key);
+    // メモリマップはAllocatePages()やAllocatePool()によって変更された場合、エラーが出るので、再度メモリマップを取得する
+    if (status != .Success) {
+        map.buffer_size = map_buffer.len;
+        map.map_size = map_buffer.len;
+        status = getMemoryMap(&map, boot_service);
+        if (status != .Success) {
+            log.err("Failed to get memory map after failed to exit boot services.", .{});
+            return status;
+        }
+        status = boot_service.exitBootServices(uefi.handle, map.map_key);
+        if (status != .Success) {
+            log.err("Failed to exit boot services.", .{});
+            return status;
+        }
+    }
+    // NOTE: exitしたので, これ以降boot serviceを利用できない. = log出力できなくなる
     while (true)
         asm volatile ("hlt");
 
