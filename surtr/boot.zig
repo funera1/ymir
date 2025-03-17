@@ -258,7 +258,7 @@ pub fn main() uefi.Status {
     }
 
     // boot_serviceのexit
-    log.info("Exiting boot services.", {});
+    log.info("Exiting boot services.", .{});
     status = boot_service.exitBootServices(uefi.handle, map.map_key);
     // メモリマップはAllocatePages()やAllocatePool()によって変更された場合、エラーが出るので、再度メモリマップを取得する
     if (status != .Success) {
@@ -276,6 +276,7 @@ pub fn main() uefi.Status {
         }
     }
     // NOTE: exitしたので, これ以降boot serviceを利用できない. = log出力できなくなる
+
     while (true)
         asm volatile ("hlt");
 
