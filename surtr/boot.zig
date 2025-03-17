@@ -277,10 +277,24 @@ pub fn main() uefi.Status {
     }
     // NOTE: exitしたので, これ以降boot serviceを利用できない. = log出力できなくなる
 
-    while (true)
-        asm volatile ("hlt");
+    // SurtrからYmir渡す引数
+    const boot_info = defs.BootInfo{
+        .magic = defs.magic,
+        .memory_map = map,
+    };
 
-    return .success;
+    // Ymirへジャンプ
+    // jumpKernel(boot_info, elf_header);
+    // unreachable;
+    const KernelEntryType = fn (defs.BootInfo) callconv(.Win64) noreturn;
+    const kernel_entry: *KernelEntryType = @ptrFromInt(elf_header.entry);
+    kernel_entry(boot_info);
+    unreachable;
+
+    // while (true)
+    //     asm volatile ("hlt");
+
+    // return .success;
 }
 
 fn getMemoryMap(map: *defs.MemoryMap, boot_services: *uefi.tables.BootServices) uefi.Status {
@@ -291,4 +305,10 @@ fn getMemoryMap(map: *defs.MemoryMap, boot_services: *uefi.tables.BootServices) 
         &map.descriptor_size,
         &map.descriptor_version,
     );
+}
+
+fn jumpKernel(boot_info: defs.BootInfo, elf_header: elf.Header) void {
+    const KernelEntryType = fn (defs.BootInfo) callconv(.Win64) noreturn;
+    const kernel_entry: *KernelEntryType = @ptrFromInt(elf_header.entry);
+    kernel_entry(boot_info);
 }

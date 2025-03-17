@@ -45,3 +45,12 @@ pub const MemoryDescriptorIterator = struct {
         return md;
     }
 };
+
+pub const magic: usize = 0xDEADBEEF_CAFEBABE;
+
+pub const BootInfo = extern struct {
+    /// Magic number to check if the boot info is valid
+    magic: usize = magic,
+    /// UEFI memory map
+    memory_map: MemoryMap,
+};
