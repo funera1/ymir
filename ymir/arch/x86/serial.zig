@@ -1,0 +1,40 @@
+const am = @import("asm.zig");
+
+pub const Ports = enum(u16) {
+    com1 = 0x3F8,
+    com2 = 0x2F8,
+    com3 = 0x3E8,
+    com4 = 0x2E8,
+};
+
+// refer UART Registers from https://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming
+const offsets = struct {
+    pub const txr = 0;
+    pub const rxr = 0;
+    pub const dll = 0;
+    pub const ier = 1;
+    pub const dlh = 1;
+    pub const iir = 2;
+    pub const fcr = 2;
+    pub const lcr = 3;
+    pub const mcr = 4;
+    pub const lsr = 5;
+    pub const msr = 6;
+    pub const sr = 7;
+};
+
+pub fn initSerial(port: Ports, baud: u32) void {
+    // レジスタの設定
+    const p = @intFromEnum(port);
+    am.outb(0b00_000_0_00, p + offsets.lcr); // LCR(Line Protocol)の初期化
+    am.outb(0, p + offsets.ier); // IER(有効化する割り込み)を無効化
+    am.outb(0, p + offsets.fcr); // FIFOバッファを無効化
+
+    // Baud Rateの設定
+    const divisor = 115200 / baud;
+    const c = am.inb(p + offsets.lcr);
+    am.outb(c | 0b1000_0000, p + offsets.lcr); // Enable DLAB
+    am.outb(@truncate(divisor & 0xFF), p + offsets.dll);
+    am.outb(@truncate((divisor >> 8) & 0xFF), p + offsets.dlh);
+    am.outb(c & 0b0111_1111, p + offsets.lcr); // Disable DLAB
+}
