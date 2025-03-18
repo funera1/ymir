@@ -3,19 +3,6 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
-    // Surtr Executable
-    const surtr = b.addExecutable(.{
-        .name = "BOOTX64.EFI",
-        .root_source_file = b.path("surtr/boot.zig"),
-        .target = b.resolveTargetQuery(.{
-            .cpu_arch = .x86_64,
-            .os_tag = .uefi,
-        }),
-        .optimize = optimize,
-        .linkage = .static,
-    });
-    b.installArtifact(surtr);
-
     // Options
     const s_log_level = b.option(
         []const u8,
@@ -40,8 +27,42 @@ pub fn build(b: *std.Build) void {
     const options = b.addOptions();
     options.addOption(std.log.Level, "log_level", log_level);
 
-    // Surtr にオプションを追加
+    // Surtr Module
+    const surtr_module = b.createModule(.{ .root_source_file = b.path("surtr/defs.zig") });
+
+    // Surtr Executable
+    const surtr = b.addExecutable(.{
+        .name = "BOOTX64.EFI",
+        .root_source_file = b.path("surtr/boot.zig"),
+        .target = b.resolveTargetQuery(.{
+            .cpu_arch = .x86_64,
+            .os_tag = .uefi,
+        }),
+        .optimize = optimize,
+        .linkage = .static,
+    });
     surtr.root_module.addOptions("option", options);
+    b.installArtifact(surtr);
+
+    // setting ymir
+    // NOTE: ymirはelfで出力される
+    const ymir_target = b.resolveTargetQuery(.{
+        .cpu_arch = .x86_64,
+        .os_tag = .freestanding,
+        .ofmt = .elf,
+    });
+    const ymir = b.addExecutable(.{
+        .name = "ymir.elf",
+        .root_source_file = b.path("ymir/main.zig"),
+        .target = ymir_target, // Freestanding x64 ELF executable
+        .optimize = optimize, // You can choose the optimization level
+        .linkage = .static,
+        .code_model = .kernel,
+    });
+    ymir.entry = .{ .symbol_name = "kernelEntry" };
+    ymir.linker_script = b.path("ymir/linker.ld");
+    ymir.root_module.addImport("surtr", surtr_module);
+    b.installArtifact(ymir);
 
     // EFI directory
     const out_dir_name = "img";
@@ -52,7 +73,18 @@ pub fn build(b: *std.Build) void {
     install_surtr.step.dependOn(&surtr.step);
     b.getInstallStep().dependOn(&install_surtr.step);
 
-    const qemu_args = [_][]const u8 {
+    // ymirをEFIファイルシステムに配置する設定
+    const install_ymir = b.addInstallFile(
+        ymir.getEmittedBin(),
+        b.fmt("{s}/{s}", .{ out_dir_name, ymir.name }),
+    );
+    install_ymir.step.dependOn(&ymir.step);
+    b.getInstallStep().dependOn(&install_ymir.step);
+
+    // linker
+    ymir.linker_script = b.path("ymir/linker.ld");
+
+    const qemu_args = [_][]const u8{
         "qemu-system-x86_64",
         "-m",
         "512M",
@@ -74,33 +106,4 @@ pub fn build(b: *std.Build) void {
 
     const run_qemu_cmd = b.step("run", "Run QEMU");
     run_qemu_cmd.dependOn(&qemu_cmd.step);
-
-    // setting ymir
-    // NOTE: ymirはelfで出力される
-    const ymir_target = b.resolveTargetQuery(.{
-        .cpu_arch = .x86_64,
-        .os_tag = .freestanding,
-        .ofmt = .elf,
-    });
-    const ymir = b.addExecutable(.{
-        .name = "ymir.elf",
-        .root_source_file = b.path("ymir/main.zig"),
-        .target = ymir_target, // Freestanding x64 ELF executable
-        .optimize = optimize, // You can choose the optimization level
-        .linkage = .static,
-        .code_model = .kernel,
-    });
-    ymir.entry = .{ .symbol_name = "kernelEntry" };
-    b.installArtifact(ymir);
-
-    // ymirをEFIファイルシステムに配置する設定
-    const install_ymir = b.addInstallFile(
-        ymir.getEmittedBin(),
-        b.fmt("{s}/{s}", .{ out_dir_name, ymir.name }),
-    );
-    install_ymir.step.dependOn(&ymir.step);
-    b.getInstallStep().dependOn(&install_ymir.step);
-
-    // linker
-    ymir.linker_script = b.path("ymir/linker.ld");
 }
