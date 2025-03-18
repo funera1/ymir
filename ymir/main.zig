@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const ymir = @import("ymir");
 const surtr = @import("surtr");
 
 extern const __stackguard_lower: [*]const u8;

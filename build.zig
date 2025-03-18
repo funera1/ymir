@@ -30,6 +30,13 @@ pub fn build(b: *std.Build) void {
     // Surtr Module
     const surtr_module = b.createModule(.{ .root_source_file = b.path("surtr/defs.zig") });
 
+    // ymir Module
+    const ymir_module = b.createModule(.{
+        .root_source_file = b.path("ymir/ymir.zig"),
+    });
+    ymir_module.addImport("ymir", ymir_module);
+    ymir_module.addImport("surtr", surtr_module);
+
     // Surtr Executable
     const surtr = b.addExecutable(.{
         .name = "BOOTX64.EFI",
@@ -44,7 +51,7 @@ pub fn build(b: *std.Build) void {
     surtr.root_module.addOptions("option", options);
     b.installArtifact(surtr);
 
-    // setting ymir
+    // ymir Executable
     // NOTE: ymirはelfで出力される
     const ymir_target = b.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
@@ -52,14 +59,6 @@ pub fn build(b: *std.Build) void {
         .ofmt = .elf,
     });
 
-    // ymir Module
-    const ymir_module = b.createModule(.{
-        .root_source_file = b.path("ymir/ymir.zig"),
-    });
-    ymir_module.addImport("ymir", ymir_module);
-    ymir_module.addImport("surtr", surtr_module);
-
-    // ymir Executable
     const ymir = b.addExecutable(.{
         .name = "ymir.elf",
         .root_source_file = b.path("ymir/main.zig"),
