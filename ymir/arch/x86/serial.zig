@@ -38,3 +38,17 @@ pub fn initSerial(port: Ports, baud: u32) void {
     am.outb(@truncate((divisor >> 8) & 0xFF), p + offsets.dlh);
     am.outb(c & 0b0111_1111, p + offsets.lcr); // Disable DLAB
 }
+
+// const bits = ymir.bits;
+pub fn writeByte(byte: u8, port: Ports) void {
+    // NOTE:シリアルに書き込むためには、TX-buferが空になるのを待つ必要がある
+    //      TX-bufferが空かどうかは、LSRのTHRE bitで確認できる
+    //      もし空でなかったら、空になるまで待つ
+    //      THRE bitは5bit目なので、5bit目が立ってるかを確認する
+    while ((am.inb(@intFromEnum(port) + offsets.lsr) & 0b0010_0000) == 0) {
+        am.relax();
+    }
+
+    // Put char into the transmitter holding buffer
+    am.outb(byte, @intFromEnum(port));
+}

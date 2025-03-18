@@ -16,3 +16,9 @@ pub inline fn outb(value: u8, port: u16) void {
           [port] "{dx}" (port),
     );
 }
+
+pub inline fn relax() void {
+    asm volatile (
+        \\rep; nop
+    );
+}
