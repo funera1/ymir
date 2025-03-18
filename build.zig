@@ -51,6 +51,15 @@ pub fn build(b: *std.Build) void {
         .os_tag = .freestanding,
         .ofmt = .elf,
     });
+
+    // ymir Module
+    const ymir_module = b.createModule(.{
+        .root_source_file = b.path("ymir/ymir.zig"),
+    });
+    ymir_module.addImport("ymir", ymir_module);
+    ymir_module.addImport("surtr", surtr_module);
+
+    // ymir Executable
     const ymir = b.addExecutable(.{
         .name = "ymir.elf",
         .root_source_file = b.path("ymir/main.zig"),
@@ -62,6 +71,7 @@ pub fn build(b: *std.Build) void {
     ymir.entry = .{ .symbol_name = "kernelEntry" };
     ymir.linker_script = b.path("ymir/linker.ld");
     ymir.root_module.addImport("surtr", surtr_module);
+    ymir.root_module.addImport("ymir", ymir_module);
     b.installArtifact(ymir);
 
     // EFI directory
