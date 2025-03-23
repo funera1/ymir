@@ -22,3 +22,11 @@ pub inline fn relax() void {
         \\rep; nop
     );
 }
+
+pub inline fn lgdt(gdtr: u64) void {
+    asm volatile (
+        \\lgdt (%[gdtr])
+        :
+        : [gdtr] "r" (gdtr),
+    );
+}

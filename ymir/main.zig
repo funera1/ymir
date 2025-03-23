@@ -46,5 +46,8 @@ fn kernelMain(boot_info: surtr.BootInfo) !void {
         return error.InvalidBootInfo;
     };
 
+    arch.gdt.init();
+    log.info("Initialized GDT.", .{});
+
     while (true) asm volatile ("hlt");
 }
