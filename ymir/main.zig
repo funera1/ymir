@@ -2,6 +2,7 @@ const std = @import("std");
 
 const ymir = @import("ymir");
 const arch = ymir.arch;
+const serial = ymir.serial;
 const surtr = @import("surtr");
 
 extern const __stackguard_lower: [*]const u8;
@@ -26,9 +27,11 @@ export fn kernelTrampoline(boot_info: surtr.BootInfo) callconv(.Win64) noreturn 
 }
 
 fn kernelMain(_: surtr.BootInfo) !void {
-    arch.serial.initSerial(.com1, 115200);
-    for ("Hello, Ymir!\n") |c|
-        arch.serial.writeByte(c, .com1);
+    const sr = serial.init();
+    sr.writeString("Hello, Ymir!\n");
+    // arch.serial.initSerial(.com1, 115200);
+    // for ("Hello, Ymir!\n") |c|
+    //     arch.serial.writeByte(c, .com1);
 
     while (true) asm volatile ("hlt");
 }

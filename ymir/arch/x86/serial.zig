@@ -1,4 +1,6 @@
 const am = @import("asm.zig");
+const ymir = @import("ymir");
+const serial = ymir.serial;
 
 pub const Ports = enum(u16) {
     com1 = 0x3F8,
@@ -23,7 +25,7 @@ const offsets = struct {
     pub const sr = 7;
 };
 
-pub fn initSerial(port: Ports, baud: u32) void {
+pub fn initSerial(serial: *Serial, port: Ports, baud: u32) void {
     // レジスタの設定
     const p = @intFromEnum(port);
     am.outb(0b00_000_0_00, p + offsets.lcr); // LCR(Line Protocol)の初期化
@@ -37,6 +39,14 @@ pub fn initSerial(port: Ports, baud: u32) void {
     am.outb(@truncate(divisor & 0xFF), p + offsets.dll);
     am.outb(@truncate((divisor >> 8) & 0xFF), p + offsets.dlh);
     am.outb(c & 0b0111_1111, p + offsets.lcr); // Disable DLAB
+
+    // write_fnの登録
+    serial._write_fn = switch (port) {
+        .com1 => writeByteCom1,
+        .com2 => writeByteCom2,
+        .com3 => writeByteCom3,
+        .com4 => writeByteCom4,
+    };
 }
 
 // const bits = ymir.bits;
@@ -51,4 +61,20 @@ pub fn writeByte(byte: u8, port: Ports) void {
 
     // Put char into the transmitter holding buffer
     am.outb(byte, @intFromEnum(port));
+}
+
+fn writeByteCom1(byte: u8) void {
+    writeByte(byte, .com1);
+}
+
+fn writeByteCom2(byte: u8) void {
+    writeByte(byte, .com2);
+}
+
+fn writeByteCom3(byte: u8) void {
+    writeByte(byte, .com3);
+}
+
+fn writeByteCom4(byte: u8) void {
+    writeByte(byte, .com4);
 }
