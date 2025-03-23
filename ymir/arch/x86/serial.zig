@@ -1,6 +1,6 @@
 const am = @import("asm.zig");
 const ymir = @import("ymir");
-const serial = ymir.serial;
+const Serial = ymir.serial.Serial;
 
 pub const Ports = enum(u16) {
     com1 = 0x3F8,
