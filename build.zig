@@ -90,6 +90,19 @@ pub fn build(b: *std.Build) void {
     install_ymir.step.dependOn(&ymir.step);
     b.getInstallStep().dependOn(&install_ymir.step);
 
+    // ymir Test
+    const ymir_tests = b.addTest(.{
+        .name = "Unit Test",
+        .root_source_file = b.path("ymir/ymir.zig"),
+        .target = b.standardTargetOptions(.{}),
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    ymir_tests.root_module.addImport("ymir", &ymir_tests.root_module);
+    const run_ymir_tests = b.addRunArtifact(ymir_tests);
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_ymir_tests.step);
+
     // linker
     ymir.linker_script = b.path("ymir/linker.ld");
 
