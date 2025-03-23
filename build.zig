@@ -71,6 +71,9 @@ pub fn build(b: *std.Build) void {
     ymir.linker_script = b.path("ymir/linker.ld");
     ymir.root_module.addImport("surtr", surtr_module);
     ymir.root_module.addImport("ymir", ymir_module);
+
+    ymir_module.addOptions("option", options);
+    ymir.root_module.addOptions("option", options);
     b.installArtifact(ymir);
 
     // EFI directory

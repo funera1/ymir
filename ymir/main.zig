@@ -1,10 +1,13 @@
 const std = @import("std");
+const surtr = @import("surtr");
+const log = std.log.scoped(.ymir);
 
 const ymir = @import("ymir");
 const arch = ymir.arch;
 const serial = ymir.serial.Serial;
-const surtr = @import("surtr");
+const klog = ymir.klog;
 
+pub const std_options = klog.default_log_options;
 extern const __stackguard_lower: [*]const u8;
 
 export fn kernelEntry() callconv(.Naked) noreturn {
@@ -26,9 +29,22 @@ export fn kernelTrampoline(boot_info: surtr.BootInfo) callconv(.Win64) noreturn 
     unreachable;
 }
 
-fn kernelMain(_: surtr.BootInfo) !void {
+fn validateBootInfo(boot_info: surtr.BootInfo) !void {
+    if (boot_info.magic != surtr.magic) {
+        return error.InvalidMagic;
+    }
+}
+
+fn kernelMain(boot_info: surtr.BootInfo) !void {
     const sr = serial.init();
-    sr.writeString("Hello, Ymir!\n");
+    klog.init(sr);
+    log.info("Booting Ymir...", .{});
+
+    // Validate the boot info.
+    validateBootInfo(boot_info) catch {
+        log.err("Invalid boot info", .{});
+        return error.InvalidBootInfo;
+    };
 
     while (true) asm volatile ("hlt");
 }
