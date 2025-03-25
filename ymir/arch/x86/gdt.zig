@@ -236,6 +236,7 @@ fn loadKernelCs() void {
     asm volatile (
         \\
         // Push Cs
+        \\mov %[kernel_cs], %%rax
         \\push %%rax
         // Push RIP
         \\leaq next(%%rip), %%rax
