@@ -30,3 +30,11 @@ pub inline fn lgdt(gdtr: u64) void {
         : [gdtr] "r" (gdtr),
     );
 }
+
+pub inline fn lidt(idtr: u64) void {
+    asm volatile (
+        \\lidt (%[idtr])
+        :
+        : [idtr] "r" (idtr),
+    );
+}

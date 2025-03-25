@@ -46,8 +46,13 @@ fn kernelMain(boot_info: surtr.BootInfo) !void {
         return error.InvalidBootInfo;
     };
 
+    // GDTの初期化
     arch.gdt.init();
     log.info("Initialized GDT.", .{});
+
+    // IDTの初期化
+    arch.idt.init();
+    log.info("Initialized IDT.", .{});
 
     while (true) asm volatile ("hlt");
 }
