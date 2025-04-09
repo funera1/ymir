@@ -51,8 +51,12 @@ fn kernelMain(boot_info: surtr.BootInfo) !void {
     log.info("Initialized GDT.", .{});
 
     // IDTの初期化
-    arch.idt.init();
+    arch.intr.init();
     log.info("Initialized IDT.", .{});
+
+    // #GPを発生
+    const ptr: *u64 = @ptrFromInt(0xDEAD_0000_0000_0000);
+    log.info("ptr.* = {d}", .{ptr.*});
 
     while (true) asm volatile ("hlt");
 }

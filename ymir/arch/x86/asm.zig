@@ -38,3 +38,15 @@ pub inline fn lidt(idtr: u64) void {
         : [idtr] "r" (idtr),
     );
 }
+
+pub inline fn sti() void {
+    asm volatile ("sti");
+}
+
+pub inline fn hlt() void {
+    asm volatile ("hlt");
+}
+
+pub inline fn cli() void {
+    asm volatile ("cli");
+}

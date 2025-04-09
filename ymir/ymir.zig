@@ -7,3 +7,9 @@ const testing = @import("std").testing;
 test {
     testing.refAllDeclsRecursive(@This());
 }
+
+/// Halt endlessly with interrupts disabled.
+pub fn endlessHalt() noreturn {
+    arch.disableIntr();
+    while (true) arch.halt();
+}
