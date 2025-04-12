@@ -68,5 +68,8 @@ fn kernelMain(boot_info: surtr.BootInfo) !void {
     log.debug("memory allocated @ {X:0>16}", .{@intFromPtr(array.ptr)});
     page_allocator.free(array);
 
+    log.info("Reconstrcuting memory mapping...", .{});
+    try mem.reconstrctMapping(mem.page_allocator);
+
     while (true) asm volatile ("hlt");
 }

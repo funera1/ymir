@@ -1,5 +1,7 @@
 pub const PageAllocator = @import("mem/PageAllocator.zig");
 pub const surtr = @import("surtr");
+pub const ymir = @import("ymir");
+pub const arch = @import("arch.zig");
 
 pub const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -14,6 +16,36 @@ pub const page_allocator = Allocator{
 pub fn initPageAllocator(map: MemoryMap) void {
     page_allocator_instance.init(map);
 }
+
+var mapping_reconstructed = false;
+pub fn reconstrctMapping(allocator: Allocator) !void {
+    try arch.page.reconstruct(allocator);
+    mapping_reconstructed = true;
+}
+
+pub fn virt2phys(addr: u64) Phys {
+    return if (!mapping_reconstructed) b: {
+        // UEFI's page table
+        break :b addr;
+    } else if (addr < ymir.kernel_base) b: {
+        // Direct map region
+        break :b addr - ymir.direct_map_base;
+    } else b: {
+        // Kernel image mapping region
+        break :b addr - ymir.kernel_base;
+    };
+}
+
+pub fn phys2virt(addr: u64) Virt {
+    return if (!mapping_reconstructed) b: {
+        // UEFI's page table
+        break :b addr;
+    } else b: {
+        // Direct map region
+        break :b addr + ymir.direct_map_base;
+    };
+}
+
 /// Physical address.
 pub const Phys = u64;
 /// Virtual address.

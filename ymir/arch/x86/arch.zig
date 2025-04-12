@@ -3,6 +3,7 @@ pub const serial = @import("serial.zig");
 pub const gdt = @import("gdt.zig");
 pub const intr = @import("interrupt.zig");
 pub const idt = @import("idt.zig");
+pub const page = @import("page.zig");
 
 // `/arch`以外に露出したくないモジュール
 const am = @import("asm.zig");
