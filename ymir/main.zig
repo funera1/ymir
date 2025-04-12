@@ -8,6 +8,8 @@ const serial = ymir.serial.Serial;
 const klog = ymir.klog;
 const mem = ymir.mem;
 
+pub const panic = ymir.panic.panic_fn;
+
 pub const std_options = klog.default_log_options;
 extern const __stackguard_lower: [*]const u8;
 
